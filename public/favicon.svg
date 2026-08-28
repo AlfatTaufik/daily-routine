@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded Base Badge -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bgGrad)"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="none" stroke="#27272a" stroke-width="12"/>
+
+  <!-- Code Bracket Icon -->
+  <path d="M160 210 L100 256 L160 302" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 210 L412 256 L352 302" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Center Flame Badge -->
+  <path d="M256 140 C280 180 310 210 310 250 C310 285 285 310 256 310 C227 310 202 285 202 250 C202 215 225 185 256 140 Z" fill="url(#flameGrad)"/>
+  <path d="M256 220 C268 240 280 255 280 270 C280 283 270 292 256 292 C242 292 232 283 232 270 C232 255 242 240 256 220 Z" fill="#ffffff" opacity="0.9"/>
+</svg>
