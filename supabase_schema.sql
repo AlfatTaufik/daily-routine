@@ -67,6 +67,19 @@ CREATE TABLE IF NOT EXISTS public.formulas (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 7. Roadmap Progress Table (id: 'YYYY-MM-DD(senin)_activityId')
+CREATE TABLE IF NOT EXISTS public.roadmap_progress (
+    id TEXT PRIMARY KEY,
+    week TEXT NOT NULL,
+    activity_id TEXT NOT NULL,
+    is_checked BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.roadmap_progress ADD COLUMN IF NOT EXISTS note TEXT;
+ALTER TABLE public.roadmap_progress ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public Read Roadmap" ON public.roadmap_progress;
+CREATE POLICY "Public Read Roadmap" ON public.roadmap_progress FOR ALL USING (true) WITH CHECK (true);
+
 -- Enable Row Level Security (RLS) & Public Policies for Easy Access
 ALTER TABLE public.schedule_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.checked_items ENABLE ROW LEVEL SECURITY;

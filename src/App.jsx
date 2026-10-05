@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient';
 import { syncToSupabase, deleteFromSupabase } from './services/dataService';
+import RoadmapTab from './RoadmapTab';
 
 // --- CATEGORY METADATA WITH PASTEL ACCENTS & SPREADSHEET LEGEND MATCHING ---
 const CATEGORY_MAP = {
@@ -467,6 +468,10 @@ export default function App() {
         e.preventDefault();
         setActiveTab('formulas');
         showToast('📚 Shortcut: Pindah ke Tab Rumus (5)');
+      } else if (e.key === '6' || (e.altKey && e.key === '6')) {
+        e.preventDefault();
+        setActiveTab('roadmap');
+        showToast('🗺️ Shortcut: Pindah ke Tab Roadmap (6)');
       }
     };
 
@@ -572,7 +577,7 @@ export default function App() {
       showToast(`📜 Menyimpan riwayat kegiatan tanggal ${selectedDateStr}`);
     }
   };
-  
+
   const handleOpenAddActivity = () => {
     setEditingItem(null);
     setActivityForm({ time: '16.30 - 18.00', title: '', desc: '', category: 'study', priority: 'B', targetDay: activeDay, saveScope: 'template' });
@@ -611,6 +616,23 @@ export default function App() {
       showToast(`📌 Master Template hari ${scheduleData[dayKey]?.title || dayKey} diperbarui.`);
     }
     setIsActivityModalOpen(false);
+  };
+
+  // Dipanggil dari tab Roadmap: tambahkan aktivitas sebagai kegiatan khusus tanggal tertentu
+  const handleScheduleFromRoadmap = ({ date, time, title, desc }) => {
+    const overrideObj = {
+      id: `ov-rm-${Date.now()}`,
+      date,
+      time,
+      title,
+      desc,
+      category: 'study',
+      priority: 'A',
+      is_deleted: false
+    };
+    setDailyOverrides((prev) => ({ ...prev, [date]: [...(prev[date] || []), overrideObj] }));
+    syncToSupabase('daily_overrides', overrideObj);
+    showToast(`🗓️ Roadmap dijadwalkan pada ${date} (${time})`);
   };
 
   const handleDeleteActivity = (id, e) => {
@@ -732,7 +754,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `study_tracker_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   };
 
@@ -761,9 +783,9 @@ export default function App() {
   const getDaysLeft = (targetDateStr) => {
     if (!targetDateStr) return 0;
     const now = new Date();
-    now.setHours(0,0,0,0);
+    now.setHours(0, 0, 0, 0);
     const target = new Date(targetDateStr);
-    target.setHours(0,0,0,0);
+    target.setHours(0, 0, 0, 0);
     const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
     return diff;
   };
@@ -790,7 +812,7 @@ export default function App() {
     return !!checkedItems[checkKey] || (selectedDateStr === getLogicalDateStr(currentTime) && !!checkedItems[item.id]);
   }).length;
   const progressPercent = rawDaySchedule.length ? Math.round((completedCount / rawDaySchedule.length) * 100) : 0;
-  
+
   const filteredTasks = tasks.filter(
     (t) =>
       (filterSubject === 'All' || t.subject === filterSubject) &&
@@ -808,11 +830,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-50/80 text-zinc-900 font-sans antialiased selection:bg-zinc-200 pb-24">
-      
+
       {/* HEADER MINIMALIST WITH AUDIO TOGGLE & TABS */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-zinc-200/80">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
+
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-zinc-900 flex items-center justify-center shadow-xs">
               <Code className="w-4 h-4 text-white" />
@@ -820,35 +842,34 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-tight text-zinc-900">StudyTracker</h1>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
-                  <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200">
+                  <Flame className="w-3 h-3 text-zinc-500 fill-zinc-500" />
                   <span>5 Hari Streak</span>
                 </span>
                 <button
                   onClick={() => setShowDbModal(true)}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition ${
-                    isSupabaseConfigured
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition ${isSupabaseConfigured
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-amber-50 text-amber-800 border-amber-200/80 hover:bg-amber-100'
-                  }`}
+                      : 'bg-zinc-100 text-zinc-800 border-zinc-200 hover:bg-zinc-200'
+                    }`}
                   title="Status Database Cloud"
                 >
-                  <Database className={`w-3 h-3 ${isSupabaseConfigured ? 'text-emerald-600' : 'text-amber-600'}`} />
+                  <Database className={`w-3 h-3 ${isSupabaseConfigured ? 'text-emerald-600' : 'text-zinc-600'}`} />
                   <span>{isSupabaseConfigured ? 'Cloud Sync ON' : 'Database Status'}</span>
                 </button>
                 <button
                   onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                  className={`p-1 rounded-lg transition ${isAudioEnabled ? 'text-amber-600 bg-amber-50' : 'text-zinc-400 bg-zinc-100'}`}
+                  className={`p-1 rounded-lg transition ${isAudioEnabled ? 'text-zinc-800 bg-zinc-100' : 'text-zinc-400 bg-zinc-100'}`}
                   title={isAudioEnabled ? 'Suara Bel Aktif' : 'Suara Bel Mute'}
                 >
                   {isAudioEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                 </button>
               </div>
               <div className="flex items-center gap-2 text-xs text-zinc-500 font-medium mt-0.5">
-                <Sun className="w-3 h-3 text-amber-500" />
+                <Sun className="w-3 h-3 text-zinc-500" />
                 <span>Bangun 06.00</span>
                 <span className="w-1 h-1 rounded-full bg-zinc-300"></span>
-                <Coffee className="w-3 h-3 text-amber-700" />
+                <Coffee className="w-3 h-3 text-zinc-700" />
                 <span>Break 09.30 & 14.30</span>
               </div>
             </div>
@@ -861,15 +882,15 @@ export default function App() {
               { id: 'tasks', icon: FileText, label: 'Tugas', keyHint: '2' },
               { id: 'pomodoro', icon: Clock, label: 'Fokus', keyHint: '3' },
               { id: 'stats', icon: BarChart3, label: 'Statistik', keyHint: '4' },
-              { id: 'formulas', icon: BookOpen, label: 'Rumus', keyHint: '5' }
+              { id: 'formulas', icon: BookOpen, label: 'Rumus', keyHint: '5' },
+              { id: 'roadmap', icon: Layers, label: 'Roadmap', keyHint: '6' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 title={`Shortcut: Tekan ${tab.keyHint} atau Alt+${tab.keyHint}`}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                  activeTab === tab.id ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200/80' : 'text-zinc-500 hover:text-zinc-800'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200/80' : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
@@ -882,14 +903,14 @@ export default function App() {
 
       {/* --- INTEGRATED COUNTDOWN WIDGET BAR (UTC MIDTERM + TASKS + QUIZZES) --- */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
-        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-2.5 shadow-xs">
+        <div className="bg-zinc-100 border border-zinc-200 rounded-2xl p-4 space-y-2.5 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-              <Timer className="w-4 h-4 text-amber-600 animate-pulse" />
+            <div className="flex items-center gap-2 text-zinc-900 font-bold text-xs">
+              <Timer className="w-4 h-4 text-zinc-600 animate-pulse" />
               <span>Countdown Ujian, Quiz & Deadlines Tugas (UTC 28 Sep 2026):</span>
             </div>
-            <button onClick={() => setShowExamModal(true)} className="px-2.5 py-1 bg-amber-600 text-white rounded-xl text-xs font-semibold hover:bg-amber-700 flex items-center gap-1">
-              <Plus className="w-3.5 h-3.5"/> Tambah Ujian/Kuis
+            <button onClick={() => setShowExamModal(true)} className="px-2.5 py-1 bg-zinc-900 text-white rounded-xl text-xs font-semibold hover:bg-zinc-800 flex items-center gap-1">
+              <Plus className="w-3.5 h-3.5" /> Tambah Ujian/Kuis
             </button>
           </div>
 
@@ -901,28 +922,26 @@ export default function App() {
               return (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-medium text-xs border whitespace-nowrap shadow-2xs ${
-                    isUTC
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-medium text-xs border whitespace-nowrap shadow-2xs ${isUTC
                       ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
                       : item.isTask
-                      ? 'bg-indigo-50 text-indigo-900 border-indigo-200'
-                      : 'bg-white text-zinc-800 border-amber-200'
-                  }`}
+                        ? 'bg-zinc-200 text-zinc-900 border-zinc-300'
+                        : 'bg-white text-zinc-800 border-zinc-200'
+                    }`}
                 >
                   <span className="font-bold">{item.title}</span>
                   <span
-                    className={`font-bold font-mono px-2 py-0.5 rounded-md text-[11px] ${
-                      isUTC
-                        ? 'bg-amber-400 text-zinc-900'
+                    className={`font-bold font-mono px-2 py-0.5 rounded-md text-[11px] ${isUTC
+                        ? 'bg-zinc-700 text-white'
                         : daysLeft <= 3
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-amber-100 text-amber-900'
-                    }`}
+                          ? 'bg-zinc-200 text-red-800'
+                          : 'bg-zinc-200 text-zinc-900'
+                      }`}
                   >
                     H-{daysLeft} Hari ({item.date})
                   </span>
                   {!item.isTask && !isUTC && (
-                    <button onClick={() => deleteExam(item.id)} className="text-zinc-400 hover:text-red-500 ml-0.5"><X className="w-3.5 h-3.5"/></button>
+                    <button onClick={() => deleteExam(item.id)} className="text-zinc-400 hover:text-zinc-600 ml-0.5"><X className="w-3.5 h-3.5" /></button>
                   )}
                 </div>
               );
@@ -935,7 +954,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
         <div className="bg-zinc-900 text-white rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md relative overflow-hidden">
           <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-zinc-800/40 rounded-full blur-2xl pointer-events-none"></div>
-          
+
           <div className="z-10">
             <div className="flex items-center gap-2 text-zinc-400 text-xs font-medium mb-1.5">
               <Clock className="w-3.5 h-3.5 text-zinc-300" />
@@ -955,40 +974,40 @@ export default function App() {
           </div>
           {currentActivityItem && (
             <div className="z-10 px-3.5 py-2 bg-zinc-800/90 rounded-xl border border-zinc-700/80 text-xs font-semibold flex items-center gap-2 shadow-xs">
-               <ArrowRight className="w-4 h-4 text-emerald-400" />
-               <span className="font-mono text-zinc-200">{currentActivityItem.time}</span>
+              <ArrowRight className="w-4 h-4 text-zinc-300" />
+              <span className="font-mono text-zinc-200">{currentActivityItem.time}</span>
             </div>
           )}
         </div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
-        
+
         {/* --- TAB 1: SCHEDULE --- */}
         {activeTab === 'schedule' && (
           <div className="space-y-6">
-            
+
             {/* DATE HISTORY & CALENDAR NAVIGATOR */}
             <div className="bg-white border border-zinc-200/90 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
+                <div className="p-2 bg-zinc-100 rounded-xl text-zinc-600 border border-zinc-200">
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-zinc-900">Riwayat & Tanggal:</span>
-                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60 capitalize">
+                    <span className="font-mono text-xs font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md border border-zinc-200 capitalize">
                       {scheduleData[getDayNameFromDateStr(selectedDateStr)]?.title || getDayNameFromDateStr(selectedDateStr)}, {selectedDateStr}
                     </span>
                   </div>
                   {selectedDateStr === getLogicalDateStr(currentTime) ? (
-                    <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[11px] text-zinc-700 font-semibold flex items-center gap-1 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-pulse"></span>
                       <span>Hari Ini (Aktif Realtime)</span>
                     </span>
                   ) : (
-                    <span className="text-[11px] text-amber-800 font-semibold flex items-center gap-1 mt-0.5">
-                      <History className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[11px] text-zinc-800 font-semibold flex items-center gap-1 mt-0.5">
+                      <History className="w-3.5 h-3.5 text-zinc-600" />
                       <span>Mode Riwayat Lampau / Mendatang</span>
                     </span>
                   )}
@@ -1032,7 +1051,7 @@ export default function App() {
                 {selectedDateStr !== getLogicalDateStr(currentTime) && (
                   <button
                     onClick={() => changeSelectedDate(getLogicalDateStr(currentTime))}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition whitespace-nowrap shadow-xs"
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-900 text-white rounded-xl text-xs font-semibold transition whitespace-nowrap shadow-xs"
                   >
                     Ke Hari Ini
                   </button>
@@ -1050,14 +1069,13 @@ export default function App() {
                     <button
                       key={day}
                       onClick={() => setActiveDay(day)}
-                      className={`relative px-3.5 py-2 text-xs font-semibold capitalize transition-all rounded-lg ${
-                        isSelected ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
-                      }`}
+                      className={`relative px-3.5 py-2 text-xs font-semibold capitalize transition-all rounded-lg ${isSelected ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
+                        }`}
                     >
                       <div className="flex items-center gap-1.5">
                         <span>{day}</span>
                         {isLogicalToday && (
-                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-400' : 'bg-zinc-900'}`}></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-zinc-400' : 'bg-zinc-900'}`}></span>
                         )}
                       </div>
                     </button>
@@ -1076,9 +1094,9 @@ export default function App() {
 
             {/* Read-Only Banner when selected day is not today */}
             {activeDay !== currentLogicalDayName && (
-              <div className="p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-xs">
+              <div className="p-3.5 bg-zinc-100 border border-zinc-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-900 shadow-xs">
                 <div className="flex items-center gap-2.5 font-medium">
-                  <div className="p-1.5 rounded-xl bg-amber-100 text-amber-700 shrink-0">
+                  <div className="p-1.5 rounded-xl bg-zinc-200 text-zinc-700 shrink-0">
                     <Lock className="w-4 h-4" />
                   </div>
                   <span>
@@ -1087,7 +1105,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setActiveDay(currentLogicalDayName)}
-                  className="self-start sm:self-auto px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-xs font-semibold transition whitespace-nowrap"
+                  className="self-start sm:self-auto px-3 py-1.5 bg-zinc-800 hover:bg-zinc-900 text-white rounded-xl text-xs font-semibold transition whitespace-nowrap"
                 >
                   Kembali ke Hari Ini ({scheduleData[currentLogicalDayName]?.title})
                 </button>
@@ -1111,11 +1129,10 @@ export default function App() {
                 <button
                   key={cat.id}
                   onClick={() => setCategoryFilter(cat.id)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                    categoryFilter === cat.id
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${categoryFilter === cat.id
                       ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
                       : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
-                  }`}
+                    }`}
                 >
                   {cat.label}
                 </button>
@@ -1131,10 +1148,10 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('tasks')}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-semibold border border-indigo-200/80 transition shadow-2xs"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs font-semibold border border-zinc-200 transition shadow-2xs"
                   title="Pindah ke Catatan Tugas (Shortcut: Tekan 2)"
                 >
-                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                  <FileText className="w-3.5 h-3.5 text-zinc-600" />
                   <span>Ke Catatan Tugas [2]</span>
                 </button>
                 <button
@@ -1151,7 +1168,7 @@ export default function App() {
             <div className="bg-white border border-zinc-200/80 p-4 rounded-2xl shadow-xs space-y-2">
               <div className="flex justify-between items-center text-xs font-semibold">
                 <span className="text-zinc-700 flex items-center gap-1.5">
-                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <Trophy className="w-4 h-4 text-zinc-500" />
                   <span>Progress Hari Ini</span>
                 </span>
                 <span className="text-zinc-900 font-bold">{progressPercent}% Selesai ({completedCount}/{rawDaySchedule.length})</span>
@@ -1160,8 +1177,8 @@ export default function App() {
                 <div className="bg-gradient-to-r from-zinc-800 to-zinc-900 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
               </div>
               {progressPercent === 100 && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800 font-semibold mt-2 animate-fade-in">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                <div className="p-2.5 bg-zinc-100 border border-zinc-200 rounded-xl flex items-center gap-2 text-xs text-zinc-800 font-semibold mt-2 animate-fade-in">
+                  <Sparkles className="w-4 h-4 text-zinc-600" />
                   <span>Luar Biasa! Semua target kegiatan hari ini selesai 100%! 🎉</span>
                 </div>
               )}
@@ -1201,25 +1218,23 @@ export default function App() {
                             <div
                               key={item.id}
                               onClick={() => toggleCheck(item.id)}
-                              className={`group flex items-start gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer ${
-                                isChecked ? 'bg-zinc-50/70 border-zinc-200 opacity-60' 
-                                : isCurrent ? 'bg-white border-zinc-900 shadow-md ring-2 ring-zinc-900/10'
-                                : 'bg-white border-zinc-200/80 hover:border-zinc-300 hover:shadow-xs'
-                              }`}
+                              className={`group flex items-start gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer ${isChecked ? 'bg-zinc-50/70 border-zinc-200 opacity-60'
+                                  : isCurrent ? 'bg-white border-zinc-900 shadow-md ring-2 ring-zinc-900/10'
+                                    : 'bg-white border-zinc-200/80 hover:border-zinc-300 hover:shadow-xs'
+                                }`}
                             >
-                              <button 
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleCheck(item.id);
                                 }}
-                                className={`mt-0.5 transition-colors ${
-                                  isChecked 
-                                    ? 'text-zinc-400' 
+                                className={`mt-0.5 transition-colors ${isChecked
+                                    ? 'text-zinc-400'
                                     : 'text-zinc-300 group-hover:text-zinc-500'
-                                }`}
+                                  }`}
                               >
                                 {isChecked ? (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-50" />
+                                  <CheckCircle2 className="w-5 h-5 text-zinc-600" />
                                 ) : (
                                   <Circle className="w-5 h-5" />
                                 )}
@@ -1239,7 +1254,7 @@ export default function App() {
                                   {item.priority === 'A' && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-900 text-white">Grade A</span>
                                   )}
-                                  
+
                                   {isCurrent && (
                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-zinc-900 bg-zinc-900 text-white flex items-center gap-1 animate-pulse">
                                       Saat ini
@@ -1323,7 +1338,7 @@ export default function App() {
                   <div key={task.id} className={`bg-white border rounded-2xl p-5 flex flex-col justify-between transition shadow-xs hover:shadow-sm ${task.status === 'done' ? 'border-zinc-200/80 opacity-60' : task.priority === 'A' ? 'border-zinc-900' : 'border-zinc-200/80'}`}>
                     <div>
                       <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60">{task.subject}</span>
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">{task.subject}</span>
                         {task.priority === 'A' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-900 text-white">Grade A</span>}
                       </div>
                       <h4 className={`text-base font-bold tracking-tight ${task.status === 'done' ? 'line-through text-zinc-400' : 'text-zinc-900'}`}>{task.title}</h4>
@@ -1333,26 +1348,26 @@ export default function App() {
                           <span className="text-zinc-500 flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-zinc-400" /> Deadline: {task.deadline}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px]">
+                          <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-800 border border-zinc-200 font-mono text-[11px]">
                             H-{getDaysLeft(task.deadline)} Hari
                           </span>
                         </div>
                       )}
                     </div>
                     <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center">
-                       <select value={task.status} onChange={(e) => updateTaskStatus(task.id, e.target.value)} className="text-xs font-semibold bg-zinc-100 text-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 outline-none cursor-pointer">
-                          <option value="todo">Belum Selesai</option>
-                          <option value="in-progress">Sedang Dikerjakan</option>
-                          <option value="done">Selesai</option>
-                       </select>
-                       <div className="flex items-center gap-1">
-                         <button onClick={() => handleOpenEditTask(task)} className="text-zinc-400 hover:text-zinc-900 transition p-1.5 rounded-lg hover:bg-zinc-100" title="Edit Tugas">
-                           <Edit3 className="w-4 h-4" />
-                         </button>
-                         <button onClick={() => deleteTask(task.id)} className="text-zinc-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50" title="Hapus Tugas">
-                           <Trash2 className="w-4 h-4" />
-                         </button>
-                       </div>
+                      <select value={task.status} onChange={(e) => updateTaskStatus(task.id, e.target.value)} className="text-xs font-semibold bg-zinc-100 text-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 outline-none cursor-pointer">
+                        <option value="todo">Belum Selesai</option>
+                        <option value="in-progress">Sedang Dikerjakan</option>
+                        <option value="done">Selesai</option>
+                      </select>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleOpenEditTask(task)} className="text-zinc-400 hover:text-zinc-900 transition p-1.5 rounded-lg hover:bg-zinc-100" title="Edit Tugas">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deleteTask(task.id)} className="text-zinc-400 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50" title="Hapus Tugas">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1366,18 +1381,18 @@ export default function App() {
           <div className="flex flex-col items-center justify-center py-8">
             <div className="bg-white border border-zinc-200/80 p-8 sm:p-10 rounded-3xl w-full max-w-md text-center shadow-sm">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-xs font-semibold mb-8">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
                 <span>Sesi Fokus Belajar (Deep Work)</span>
               </span>
-              
+
               <div className="text-7xl sm:text-8xl font-mono font-bold tracking-tighter text-zinc-900 mb-8">
                 {formatTimeStr(pomodoroTime)}
               </div>
 
               <div className="flex justify-center gap-2 mb-8">
-                <button onClick={() => { setPomodoroMode('focus'); setPomodoroTime(25*60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'focus' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Fokus 25m</button>
-                <button onClick={() => { setPomodoroMode('deep'); setPomodoroTime(50*60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'deep' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Deep 50m</button>
-                <button onClick={() => { setPomodoroMode('short'); setPomodoroTime(5*60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'short' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Istirahat 5m</button>
+                <button onClick={() => { setPomodoroMode('focus'); setPomodoroTime(25 * 60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'focus' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Fokus 25m</button>
+                <button onClick={() => { setPomodoroMode('deep'); setPomodoroTime(50 * 60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'deep' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Deep 50m</button>
+                <button onClick={() => { setPomodoroMode('short'); setPomodoroTime(5 * 60); setIsTimerRunning(false); }} className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${pomodoroMode === 'short' ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}>Istirahat 5m</button>
               </div>
 
               <div className="flex items-center justify-center gap-3">
@@ -1385,7 +1400,7 @@ export default function App() {
                   {isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-white" />}
                   <span>{isTimerRunning ? 'Jeda' : 'Mulai Fokus'}</span>
                 </button>
-                <button onClick={() => { setIsTimerRunning(false); setPomodoroTime(25*60); }} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition">
+                <button onClick={() => { setIsTimerRunning(false); setPomodoroTime(25 * 60); }} className="p-3 rounded-xl border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition">
                   <RotateCcw className="w-4 h-4" />
                 </button>
               </div>
@@ -1403,10 +1418,10 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={handleExportBackup} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-xl text-xs font-semibold hover:bg-zinc-200">
-                  <Download className="w-3.5 h-3.5"/> Export JSON
+                  <Download className="w-3.5 h-3.5" /> Export JSON
                 </button>
                 <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-xl text-xs font-semibold hover:bg-zinc-200 cursor-pointer">
-                  <Upload className="w-3.5 h-3.5"/> Import Backup
+                  <Upload className="w-3.5 h-3.5" /> Import Backup
                   <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
                 </label>
               </div>
@@ -1421,19 +1436,19 @@ export default function App() {
               </div>
               <div className="bg-white border border-zinc-200/80 p-5 rounded-2xl shadow-xs">
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Tugas Selesai</p>
-                <p className="text-3xl font-bold font-mono text-emerald-600 mt-2">
+                <p className="text-3xl font-bold font-mono text-zinc-900 mt-2">
                   {tasks.filter(t => t.status === 'done').length} / {tasks.length}
                 </p>
                 <p className="text-[11px] text-zinc-400 mt-1">Total Catatan Tugas</p>
               </div>
               <div className="bg-white border border-zinc-200/80 p-5 rounded-2xl shadow-xs">
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Disiplin Harian</p>
-                <p className="text-3xl font-bold font-mono text-indigo-600 mt-2">{progressPercent}%</p>
+                <p className="text-3xl font-bold font-mono text-zinc-900 mt-2">{progressPercent}%</p>
                 <p className="text-[11px] text-zinc-400 mt-1">Rasio Ceklis Hari Ini</p>
               </div>
               <div className="bg-white border border-zinc-200/80 p-5 rounded-2xl shadow-xs">
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Target Ujian & Deadlines</p>
-                <p className="text-3xl font-bold font-mono text-amber-600 mt-2">{allCountdownItems.length}</p>
+                <p className="text-3xl font-bold font-mono text-zinc-900 mt-2">{allCountdownItems.length}</p>
                 <p className="text-[11px] text-zinc-400 mt-1">Countdown Aktif</p>
               </div>
             </div>
@@ -1443,11 +1458,11 @@ export default function App() {
               <h4 className="text-sm font-bold text-zinc-900">Distribusi Kategori Waktu Belajar</h4>
               <div className="space-y-3">
                 {[
-                  { key: 'study', name: 'Belajar & Coding Mandiri', color: 'bg-indigo-500', percent: 40 },
-                  { key: 'class', name: 'Kuliah & Lab Kampus', color: 'bg-purple-500', percent: 30 },
+                  { key: 'study', name: 'Belajar & Coding Mandiri', color: 'bg-zinc-800', percent: 40 },
+                  { key: 'class', name: 'Kuliah & Lab Kampus', color: 'bg-zinc-600', percent: 30 },
                   { key: 'routine', name: 'Rutinitas & Coffee Break', color: 'bg-zinc-400', percent: 15 },
-                  { key: 'hobby', name: 'Hobi & Refreshing', color: 'bg-amber-500', percent: 10 },
-                  { key: 'self-dev', name: 'Pengembangan Diri', color: 'bg-sky-500', percent: 5 }
+                  { key: 'hobby', name: 'Hobi & Refreshing', color: 'bg-zinc-300', percent: 10 },
+                  { key: 'self-dev', name: 'Pengembangan Diri', color: 'bg-zinc-500', percent: 5 }
                 ].map(cat => (
                   <div key={cat.key} className="space-y-1">
                     <div className="flex justify-between text-xs font-semibold">
@@ -1464,6 +1479,9 @@ export default function App() {
           </div>
         )}
 
+        {/* --- TAB 6: ROADMAP MINGGUAN --- */}
+        {activeTab === 'roadmap' && <RoadmapTab onSchedule={handleScheduleFromRoadmap} />}
+
         {/* --- TAB 5: CATATAN RUMUS & CHEAT-SHEET --- */}
         {activeTab === 'formulas' && (
           <div className="space-y-6">
@@ -1473,7 +1491,7 @@ export default function App() {
                 <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">Ringkasan rumus, rumus matematika, dan sintaks penting per mata kuliah.</p>
               </div>
               <button onClick={() => setShowFormulaModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900 text-white rounded-xl text-xs font-semibold hover:bg-zinc-800 transition shadow-xs">
-                <Plus className="w-4 h-4"/> Tambah Rumus
+                <Plus className="w-4 h-4" /> Tambah Rumus
               </button>
             </div>
 
@@ -1482,8 +1500,8 @@ export default function App() {
                 <div key={f.id} className="bg-white border border-zinc-200/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-sm">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/60">{f.subject}</span>
-                      <button onClick={() => deleteFormula(f.id)} className="text-zinc-400 hover:text-red-600 p-1"><Trash2 className="w-4 h-4"/></button>
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200">{f.subject}</span>
+                      <button onClick={() => deleteFormula(f.id)} className="text-zinc-400 hover:text-zinc-600 p-1"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <h4 className="text-sm font-bold text-zinc-900">{f.title}</h4>
                     <pre className="text-xs font-mono bg-zinc-900 text-zinc-100 p-3.5 rounded-xl mt-3 overflow-x-auto whitespace-pre-wrap leading-relaxed">
@@ -1504,7 +1522,7 @@ export default function App() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-zinc-100">
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
               <h3 className="text-base font-bold text-zinc-900">{editingItem ? 'Edit Kegiatan' : 'Kegiatan Baru'}</h3>
-              <button onClick={() => setIsActivityModalOpen(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5"/></button>
+              <button onClick={() => setIsActivityModalOpen(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSaveActivity} className="space-y-4 text-sm">
               <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
@@ -1520,7 +1538,7 @@ export default function App() {
                     />
                     <span>📌 Simpan ke Master Template (Rutinitas Setiap Hari {scheduleData[activityForm.targetDay]?.title || activityForm.targetDay})</span>
                   </label>
-                  <label className="flex items-center gap-2 font-semibold text-indigo-700 cursor-pointer">
+                  <label className="flex items-center gap-2 font-semibold text-zinc-700 cursor-pointer">
                     <input
                       type="radio"
                       name="saveScope"
@@ -1536,23 +1554,23 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Hari</label>
-                  <select value={activityForm.targetDay} onChange={e => setActivityForm({...activityForm, targetDay: e.target.value})} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
-                    {['senin','selasa','rabu','kamis','jumat','sabtu','minggu'].map(d => <option key={d} value={d}>{d}</option>)}
+                  <select value={activityForm.targetDay} onChange={e => setActivityForm({ ...activityForm, targetDay: e.target.value })} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
+                    {['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'].map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Jam (HH.MM - HH.MM)</label>
-                  <input required value={activityForm.time} onChange={e => setActivityForm({...activityForm, time: e.target.value})} placeholder="08.00 - 10.00" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                  <input required value={activityForm.time} onChange={e => setActivityForm({ ...activityForm, time: e.target.value })} placeholder="08.00 - 10.00" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
                 </div>
               </div>
               <div>
                 <label className="block text-zinc-600 font-semibold mb-1 text-xs">Nama Kegiatan</label>
-                <input required value={activityForm.title} onChange={e => setActivityForm({...activityForm, title: e.target.value})} placeholder="Rapat, Belajar, dll" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                <input required value={activityForm.title} onChange={e => setActivityForm({ ...activityForm, title: e.target.value })} placeholder="Rapat, Belajar, dll" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Kategori</label>
-                  <select value={activityForm.category} onChange={e => setActivityForm({...activityForm, category: e.target.value})} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
+                  <select value={activityForm.category} onChange={e => setActivityForm({ ...activityForm, category: e.target.value })} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
                     <option value="study">Belajar</option>
                     <option value="class">Kuliah</option>
                     <option value="hobby">Hobi</option>
@@ -1563,7 +1581,7 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Prioritas</label>
-                  <select value={activityForm.priority} onChange={e => setActivityForm({...activityForm, priority: e.target.value})} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
+                  <select value={activityForm.priority} onChange={e => setActivityForm({ ...activityForm, priority: e.target.value })} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold">
                     <option value="A">A (Paling Penting)</option>
                     <option value="B">B (Standar)</option>
                     <option value="C">C (Bebas)</option>
@@ -1586,7 +1604,7 @@ export default function App() {
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
               <h3 className="text-base font-bold text-zinc-900">{editingTask ? 'Edit Catatan Tugas' : 'Tambah Tugas Baru'}</h3>
               <button onClick={() => setShowTaskModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1">
-                <X className="w-5 h-5"/>
+                <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveTask} className="space-y-4 text-sm">
@@ -1669,26 +1687,26 @@ export default function App() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-zinc-100">
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
               <h3 className="text-base font-bold text-zinc-900">Tambah Countdown Ujian / UTC</h3>
-              <button onClick={() => setShowExamModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5"/></button>
+              <button onClick={() => setShowExamModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleAddExam} className="space-y-4 text-sm">
               <div>
                 <label className="block text-zinc-600 font-semibold mb-1 text-xs">Nama Ujian / Kuis / UTC</label>
-                <input required value={newExam.title} onChange={e => setNewExam({...newExam, title: e.target.value})} placeholder="Contoh: UTC Semester" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                <input required value={newExam.title} onChange={e => setNewExam({ ...newExam, title: e.target.value })} placeholder="Contoh: UTC Semester" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Mata Kuliah</label>
-                  <input required value={newExam.subject} onChange={e => setNewExam({...newExam, subject: e.target.value})} placeholder="Semua Matkul" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                  <input required value={newExam.subject} onChange={e => setNewExam({ ...newExam, subject: e.target.value })} placeholder="Semua Matkul" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
                 </div>
                 <div>
                   <label className="block text-zinc-600 font-semibold mb-1 text-xs">Tanggal Pelaksanaan</label>
-                  <input type="date" required value={newExam.date} onChange={e => setNewExam({...newExam, date: e.target.value})} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                  <input type="date" required value={newExam.date} onChange={e => setNewExam({ ...newExam, date: e.target.value })} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowExamModal(false)} className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold">Batal</button>
-                <button type="submit" className="px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700">Simpan Ujian</button>
+                <button type="submit" className="px-4 py-2 rounded-xl bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800">Simpan Ujian</button>
               </div>
             </form>
           </div>
@@ -1701,20 +1719,20 @@ export default function App() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-zinc-100">
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
               <h3 className="text-base font-bold text-zinc-900">Tambah Catatan Rumus</h3>
-              <button onClick={() => setShowFormulaModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5"/></button>
+              <button onClick={() => setShowFormulaModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleAddFormula} className="space-y-4 text-sm">
               <div>
                 <label className="block text-zinc-600 font-semibold mb-1 text-xs">Mata Kuliah</label>
-                <input required value={newFormula.subject} onChange={e => setNewFormula({...newFormula, subject: e.target.value})} placeholder="Algoritma & Pemrograman" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                <input required value={newFormula.subject} onChange={e => setNewFormula({ ...newFormula, subject: e.target.value })} placeholder="Algoritma & Pemrograman" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
               </div>
               <div>
                 <label className="block text-zinc-600 font-semibold mb-1 text-xs">Judul Rumus / Sintaks</label>
-                <input required value={newFormula.title} onChange={e => setNewFormula({...newFormula, title: e.target.value})} placeholder="Contoh: Binary Search" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold"/>
+                <input required value={newFormula.title} onChange={e => setNewFormula({ ...newFormula, title: e.target.value })} placeholder="Contoh: Binary Search" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none text-xs font-semibold" />
               </div>
               <div>
                 <label className="block text-zinc-600 font-semibold mb-1 text-xs">Rumus / Sintaks Kode</label>
-                <textarea rows={4} required value={newFormula.code} onChange={e => setNewFormula({...newFormula, code: e.target.value})} placeholder="Ketik rumus atau sintaks..." className="w-full bg-zinc-900 text-zinc-100 font-mono border border-zinc-800 rounded-xl px-3 py-2 outline-none text-xs leading-relaxed"/>
+                <textarea rows={4} required value={newFormula.code} onChange={e => setNewFormula({ ...newFormula, code: e.target.value })} placeholder="Ketik rumus atau sintaks..." className="w-full bg-zinc-900 text-zinc-100 font-mono border border-zinc-800 rounded-xl px-3 py-2 outline-none text-xs leading-relaxed" />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowFormulaModal(false)} className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-semibold">Batal</button>
@@ -1731,19 +1749,18 @@ export default function App() {
           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl border border-zinc-100">
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-zinc-100">
               <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-indigo-600" />
+                <Database className="w-5 h-5 text-zinc-600" />
                 <h3 className="text-base font-bold text-zinc-900">Status Database Cloud</h3>
               </div>
               <button onClick={() => setShowDbModal(false)} className="text-zinc-400 hover:text-zinc-700 p-1">
-                <X className="w-5 h-5"/>
+                <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4 text-xs">
-              <div className={`p-3.5 rounded-xl border flex items-center gap-3 ${
-                isSupabaseConfigured ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'
-              }`}>
-                <div className={`p-2 rounded-lg shrink-0 ${isSupabaseConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              <div className={`p-3.5 rounded-xl border flex items-center gap-3 ${isSupabaseConfigured ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-zinc-100 border-zinc-200 text-zinc-900'
+                }`}>
+                <div className={`p-2 rounded-lg shrink-0 ${isSupabaseConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-200 text-zinc-700'}`}>
                   <Database className="w-4 h-4" />
                 </div>
                 <div>
@@ -1762,7 +1779,7 @@ export default function App() {
                 <div className="space-y-3 bg-zinc-50 p-4 rounded-xl border border-zinc-200">
                   <h4 className="font-bold text-zinc-900 text-xs">Cara Menghubungkan Supabase (Gratis):</h4>
                   <ol className="list-decimal list-inside space-y-1.5 text-zinc-600 font-medium">
-                    <li>Buat proyek gratis di <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">Supabase.com</a></li>
+                    <li>Buat proyek gratis di <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-zinc-900 font-bold underline">Supabase.com</a></li>
                     <li>Buka <strong>SQL Editor</strong> dan jalankan script file <code>supabase_schema.sql</code></li>
                     <li>Di <strong>Vercel Dashboard</strong> ➔ Settings ➔ Environment Variables, tambahkan:
                       <ul className="list-disc list-inside pl-4 mt-1 font-mono text-[11px] text-zinc-800 space-y-0.5">
@@ -1785,7 +1802,7 @@ export default function App() {
       {/* --- TOAST NOTIFICATION POPUP --- */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl border border-zinc-700 flex items-center gap-2.5 animate-bounce">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <AlertCircle className="w-4 h-4 text-zinc-400 shrink-0" />
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-zinc-400 hover:text-white ml-2 p-0.5">
             <X className="w-3.5 h-3.5" />
